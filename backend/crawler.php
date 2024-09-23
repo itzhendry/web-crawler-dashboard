@@ -2,12 +2,21 @@
 // crawler.php
 
 function crawlWebsite($url) {
-    $html = file_get_contents($url);
+    // Set custom headers, including User-Agent to mimic a real browser
+    $options = [
+        'http' => [
+            'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"
+        ]
+    ];
+    $context = stream_context_create($options);
+    $html = @file_get_contents($url, false, $context);
+
+    // Handle failure to load content
     if ($html === FALSE) {
-        return null;
+        return ['error' => 'Failed to retrieve data from ' . $url];
     }
 
-    // Lihtne DOM parser
+    // Simple DOM parser
     $dom = new DOMDocument();
     libxml_use_internal_errors(true);
     $dom->loadHTML($html);
@@ -15,9 +24,9 @@ function crawlWebsite($url) {
 
     $xpath = new DOMXPath($dom);
 
-    // Näidis: Toodete nimekirja ekstraktimine
+    // Example: Extract product list
     $products = [];
-    // Asenda vastavalt e-poe struktuurile
+    // Adjust according to the structure of the e-commerce site
     $productNodes = $xpath->query("//div[@class='product']");
     foreach ($productNodes as $node) {
         $nameNode = $xpath->query(".//h2", $node)->item(0);
@@ -35,7 +44,7 @@ function crawlWebsite($url) {
         ];
     }
 
-    // Kategooriate list
+    // List of unique categories
     $categories = array_unique(array_map(function($product) {
         return $product['category'];
     }, $products));
