@@ -2,7 +2,7 @@
 // crawler.php
 
 function crawlWebsite($url) {
-    // Set custom headers, including User-Agent to mimic a real browser
+    // Set custom headers with User-Agent to mimic a real browser
     $options = [
         'http' => [
             'header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"
@@ -24,23 +24,37 @@ function crawlWebsite($url) {
 
     $xpath = new DOMXPath($dom);
 
-    // Example: Extract product list
+    // Initialize product array
     $products = [];
-    // Adjust according to the structure of the e-commerce site
-    $productNodes = $xpath->query("//div[@class='product']");
+
+    // Adjust XPath queries based on the site
+    if (strpos($url, 'sportland.ee') !== false) {
+        // Sportland.ee (Example XPath, inspect if needed)
+        $productNodes = $xpath->query("//div[contains(@class, 'product-item')]");
+    } elseif (strpos($url, 'arvutitark.ee') !== false) {
+        // Arvutitark.ee (Example XPath, inspect if needed)
+        $productNodes = $xpath->query("//div[contains(@class, 'group')]");
+    } elseif (strpos($url, 'kaup24.ee') !== false) {
+        // Kaup24.ee (Example XPath, inspect if needed)
+        $productNodes = $xpath->query("//div[contains(@class, 'product-list')]");
+    } else {
+        return null; // URL structure not recognized
+    }
+
+    // Iterate through product nodes and extract details
     foreach ($productNodes as $node) {
         $nameNode = $xpath->query(".//h2", $node)->item(0);
-        $priceNode = $xpath->query(".//span[@class='price']", $node)->item(0);
-        $categoryNode = $xpath->query(".//a[@class='category']", $node)->item(0);
+        $priceNode = $xpath->query(".//span[contains(@class, 'price')]", $node)->item(0);
+        $categoryNode = $xpath->query(".//a[contains(@class, 'category')]", $node)->item(0);
 
-        $name = $nameNode ? $nameNode->nodeValue : 'N/A';
-        $price = $priceNode ? $priceNode->nodeValue : 'N/A';
-        $category = $categoryNode ? $categoryNode->nodeValue : 'N/A';
+        $name = $nameNode ? trim($nameNode->nodeValue) : 'N/A';
+        $price = $priceNode ? trim($priceNode->nodeValue) : 'N/A';
+        $category = $categoryNode ? trim($categoryNode->nodeValue) : 'N/A';
 
         $products[] = [
-            'name' => trim($name),
-            'price' => trim($price),
-            'category' => trim($category)
+            'name' => $name,
+            'price' => $price,
+            'category' => $category
         ];
     }
 
