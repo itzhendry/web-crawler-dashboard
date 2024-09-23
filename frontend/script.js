@@ -1,54 +1,147 @@
-// script.js
+// frontend/script.js
 
-document.getElementById('crawl-button').addEventListener('click', () => {
-    const urlInput = document.getElementById('search-url').value.trim();
+// API endpoint URL
+const API_URL = 'http://localhost/web-crawler-dashboard/backend/api.php';
+
+// Elements
+const crawlButton = document.getElementById('crawl-button');
+const searchUrlInput = document.getElementById('search-url');
+const statusDiv = document.getElementById('status');
+const categoriesBody = document.getElementById('categories-body');
+
+// Chart instances
+let categoryChartInstance = null;
+let priceChartInstance = null;
+
+// Event listener for the crawl button
+crawlButton.addEventListener('click', () => {
+    const urlInput = searchUrlInput.value.trim();
     if (!urlInput) {
         alert('Palun sisesta e-poe URL.');
         return;
     }
 
-    // Näita kaapimise olekut
-    document.getElementById('status').innerText = 'Kaapimine käib...';
+    // Add the new URL to the backend
+    addNewUrl(urlInput);
+});
 
-    // API päring frontendist otse backendisse
-    // Selleks vajame backendile uue endpointi, mis võtab URL-i ja lisab selle `urls.txt` faili
-    // Selle lihtsustamiseks, eeldame, et kasutame juba olemasolevat `api.php` endpointi
+/**
+ * Add a new URL to the backend via POST request.
+ *
+ * @param {string} url The URL to add.
+ */
+function addNewUrl(url) {
+    // Show status
+    statusDiv.innerText = 'Lisatakse uus URL...';
 
-    fetch(`http://localhost/web-crawler-dashboard/backend/api.php`, {
+    fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer S3cure8008Stere' // Replace with your API key
+        },
+        body: JSON.stringify({ url: url })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            statusDiv.innerText = `Viga: ${data.error}`;
+        } else {
+            statusDiv.innerText = 'Uus URL lisatud. Alustan kaapimist...';
+            // Clear input field
+            searchUrlInput.value = '';
+            // Start crawling
+            startCrawling();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        statusDiv.innerText = 'Viga URL lisamisel.';
+    });
+}
+
+/**
+ * Start crawling by sending a GET request to the backend.
+ */
+function startCrawling() {
+    // Show crawling status
+    statusDiv.innerText = 'Kaapimine käib...';
+
+    fetch(API_URL, {
         method: 'GET',
         headers: {
-            'Authorization': 'Bearer teie_tugev_api_võti' // Asenda oma API võtmega
+            'Authorization': 'Bearer S3cure8008Stere' // Replace with your API key
         }
     })
     .then(response => response.json())
     .then(data => {
-        document.getElementById('status').innerText = 'Kaapimine lõpetatud.';
-        visualizeData(data);
+        if (Array.isArray(data)) {
+            // Check for any errors in the data
+            const errors = data.filter(site => site.error).map(site => site.error);
+            if (errors.length > 0) {
+                statusDiv.innerText = `Viga kaapimisel: ${errors.join('; ')}`;
+            } else {
+                statusDiv.innerText = 'Kaapimine lõpetatud.';
+                visualizeData(data);
+            }
+        } else if (data.error) {
+            // If the entire response has an error
+            statusDiv.innerText = `Viga kaapimisel: ${data.error}`;
+        } else {
+            statusDiv.innerText = 'Viga kaapimisel.';
+        }
     })
     .catch(error => {
         console.error('Error:', error);
-        document.getElementById('status').innerText = 'Viga kaapimisel.';
+        statusDiv.innerText = 'Viga kaapimisel.';
     });
-});
+}
 
+/**
+ * Visualize the crawled data by updating charts and tables.
+ *
+ * @param {Array} data The data returned from the backend.
+ */
 function visualizeData(data) {
-    // Andmete töötlemine ja graafikute joonistamine
+    // Initialize counts
     const categoryCounts = {};
+    const priceRanges = {
+        '0-50': 0,
+        '51-100': 0,
+        '101-200': 0,
+        '201-500': 0,
+        '500+': 0
+    };
+
+    // Process data
     data.forEach(site => {
-        site.categories.forEach(category => {
-            if (categoryCounts[category]) {
-                categoryCounts[category]++;
-            } else {
-                categoryCounts[category] = 1;
-            }
-        });
+        if (site.items && Array.isArray(site.items)) {
+            site.items.forEach(product => {
+                // Count categories
+                const category = product.category || 'Unknown';
+                if (categoryCounts[category]) {
+                    categoryCounts[category]++;
+                } else {
+                    categoryCounts[category] = 1;
+                }
+
+                // Count price ranges
+                const price = parseFloat(product.price.replace(/[^0-9.]/g, ''));
+                if (!isNaN(price)) {
+                    if (price <= 50) priceRanges['0-50']++;
+                    else if (price <= 100) priceRanges['51-100']++;
+                    else if (price <= 200) priceRanges['101-200']++;
+                    else if (price <= 500) priceRanges['201-500']++;
+                    else priceRanges['500+']++;
+                }
+            });
+        }
     });
 
-    // Sortime kategooriad populaarsuse järgi
+    // Sort categories by popularity
     const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
 
-    // Kuvame tabeli
-    const categoriesBody = document.getElementById('categories-body');
+    // Populate the categories table
     categoriesBody.innerHTML = '';
     sortedCategories.forEach(([category, count]) => {
         const row = document.createElement('tr');
@@ -61,15 +154,22 @@ function visualizeData(data) {
         categoriesBody.appendChild(row);
     });
 
-    // Toodete kategooriate graafik (ringgraafik)
+    // Generate or update Category Distribution Chart (Pie Chart)
+    const categoryLabels = sortedCategories.map(item => item[0]);
+    const categoryData = sortedCategories.map(item => item[1]);
+
+    if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+    }
+
     const ctxCategory = document.getElementById('categoryChart').getContext('2d');
-    new Chart(ctxCategory, {
+    categoryChartInstance = new Chart(ctxCategory, {
         type: 'pie',
         data: {
-            labels: Object.keys(categoryCounts),
+            labels: categoryLabels,
             datasets: [{
-                data: Object.values(categoryCounts),
-                backgroundColor: generateColors(Object.keys(categoryCounts).length)
+                data: categoryData,
+                backgroundColor: generateColors(categoryLabels.length)
             }]
         },
         options: {
@@ -86,34 +186,22 @@ function visualizeData(data) {
         }
     });
 
-    // Hinnaklassi jaotuse graafik (tulpdiagramm)
-    const priceRanges = {
-        '0-50': 0,
-        '51-100': 0,
-        '101-200': 0,
-        '201-500': 0,
-        '500+': 0
-    };
+    // Generate or update Price Range Distribution Chart (Bar Chart)
+    const priceLabels = Object.keys(priceRanges);
+    const priceData = Object.values(priceRanges);
 
-    data.forEach(site => {
-        site.products.forEach(product => {
-            const price = parseFloat(product.price.replace(/[^0-9.]/g, ''));
-            if (price <= 50) priceRanges['0-50']++;
-            else if (price <= 100) priceRanges['51-100']++;
-            else if (price <= 200) priceRanges['101-200']++;
-            else if (price <= 500) priceRanges['201-500']++;
-            else priceRanges['500+']++;
-        });
-    });
+    if (priceChartInstance) {
+        priceChartInstance.destroy();
+    }
 
     const ctxPrice = document.getElementById('priceChart').getContext('2d');
-    new Chart(ctxPrice, {
+    priceChartInstance = new Chart(ctxPrice, {
         type: 'bar',
         data: {
-            labels: Object.keys(priceRanges),
+            labels: priceLabels,
             datasets: [{
                 label: 'Toodete arv',
-                data: Object.values(priceRanges),
+                data: priceData,
                 backgroundColor: 'rgba(75, 192, 192, 0.6)'
             }]
         },
@@ -125,13 +213,25 @@ function visualizeData(data) {
                     display: true,
                     text: 'Hinnaklassi Jaotus'
                 }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    precision: 0
+                }
             }
         }
     });
 
-    // Lisa teisi graafikuid siia (allahindlused, populaarsus jne)
+    // Additional charts can be added here
 }
 
+/**
+ * Generate an array of HSL color strings.
+ *
+ * @param {number} num The number of colors to generate.
+ * @return {Array} An array of HSL color strings.
+ */
 function generateColors(num) {
     const colors = [];
     for(let i = 0; i < num; i++) {
@@ -139,3 +239,16 @@ function generateColors(num) {
     }
     return colors;
 }
+
+// frontend/script.js
+const spinner = document.getElementById('spinner');
+
+function showSpinner() {
+    spinner.classList.remove('d-none');
+}
+
+function hideSpinner() {
+    spinner.classList.add('d-none');
+}
+
+// Use showSpinner() and hideSpinner() around fetch calls
