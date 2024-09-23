@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <title>Veebikaapimise Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Veebikaapimise Dashboard</h1>
+    
+    <div id="controls">
+        <input type="text" id="search-url" placeholder="Sisesta e-poe URL">
+        <button id="crawl-button">Kaape</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="dashboard">
+        <div id="charts">
+            <canvas id="categoryChart"></canvas>
+            <canvas id="priceChart"></canvas>
+            <!-- Lisa teisi graafikuid siia -->
+        </div>
+        
+        <div id="categories-table">
+            <h2>Populaarsed Kategooriad</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kategooria</th>
+                        <th>Toodete arv</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-body">
+                    <!-- Andmed täidetakse JavaScriptiga -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
