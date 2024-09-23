@@ -1,20 +1,15 @@
-# .gitignore
-
-# Environment variables
-.env
-
-# Ignore backend configuration
+# Ignore configuration files
 backend/config.php
 
-# Ignore URLs file
+# Ignore URLs list
 backend/urls.txt
 
-# Ignore PHP error logs
+# Ignore log files
 *.log
 
-# Ignore OS generated files
-.DS_Store
-Thumbs.db
+# Ignore temporary files
+*.tmp
 
-# Ignore node_modules if any
-frontend/node_modules/
+# Ignore frontend build files (kui kasutate build tööriistu)
+frontend/build/
+frontend/dist/
