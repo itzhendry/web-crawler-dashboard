@@ -45,6 +45,7 @@ function addNewUrl(url) {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
+            // Kasutasime tagurpidi komasid (``) template literal'ide jaoks
             statusDiv.innerText = `Viga: ${data.error}`;
         } else {
             statusDiv.innerText = 'Uus URL lisatud. Alustan kaapimist...';
@@ -76,16 +77,18 @@ function startCrawling() {
     .then(response => response.json())
     .then(data => {
         if (Array.isArray(data)) {
-            // Check for any errors in the data
+            // Kontrollige andmetes esinevaid vigu
             const errors = data.filter(site => site.error).map(site => site.error);
             if (errors.length > 0) {
+                // Kasutasime tagurpidi komasid (``) template literal'ide jaoks
                 statusDiv.innerText = `Viga kaapimisel: ${errors.join('; ')}`;
             } else {
                 statusDiv.innerText = 'Kaapimine lõpetatud.';
                 visualizeData(data);
             }
         } else if (data.error) {
-            // If the entire response has an error
+            // Kui kogu vastusel on viga
+            // Kasutasime tagurpidi komasid (``) template literal'ide jaoks
             statusDiv.innerText = `Viga kaapimisel: ${data.error}`;
         } else {
             statusDiv.innerText = 'Viga kaapimisel.';
@@ -235,20 +238,8 @@ function visualizeData(data) {
 function generateColors(num) {
     const colors = [];
     for(let i = 0; i < num; i++) {
+        // Kasutasime tagurpidi komasid (``) template literal'ide jaoks
         colors.push(`hsl(${i * (360 / num)}, 70%, 50%)`);
     }
     return colors;
 }
-
-// frontend/script.js
-const spinner = document.getElementById('spinner');
-
-function showSpinner() {
-    spinner.classList.remove('d-none');
-}
-
-function hideSpinner() {
-    spinner.classList.add('d-none');
-}
-
-// Use showSpinner() and hideSpinner() around fetch calls
