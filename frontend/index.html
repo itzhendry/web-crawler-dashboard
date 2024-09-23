@@ -1,5 +1,4 @@
-<!-- frontend/index.html -->
-
+<!-- frontend/index.ht222ml -->
 <!DOCTYPE html>
 <html lang="et">
 <head>
@@ -9,23 +8,17 @@
 </head>
 <body>
     <h1>Veebikaapimise Dashboard</h1>
-    
     <div id="controls">
         <input type="text" id="search-url" placeholder="Sisesta e-poe URL">
         <button id="crawl-button">Kaape</button>
     </div>
-
-    
-    
     <div id="status"></div>
-    
     <div id="dashboard">
         <div id="charts">
             <canvas id="categoryChart"></canvas>
             <canvas id="priceChart"></canvas>
-            <!-- Additional charts can be added here -->
+            <!-- IMDb Chart will be added dynamically -->
         </div>
-        
         <div id="categories-table">
             <h2>Populaarsed Kategooriad</h2>
             <table>
@@ -41,7 +34,6 @@
             </table>
         </div>
     </div>
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
