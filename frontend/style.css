@@ -164,5 +164,4 @@ footer p {
     max-width: 400px;  /* Adjust to your desired width */
     max-height: 400px; /* Adjust to your desired height */
     width: 100%; /* Make sure the width is responsive */
-    height: auto;
 }
