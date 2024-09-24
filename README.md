@@ -11,7 +11,7 @@
 - [https://www.ebay.com/b/Nike-Air-Force-1-Sneakers-for-Men/15709/bn_7115514424](https://www.ebay.com/b/Nike-Air-Force-1-Sneakers-for-Men/15709/bn_7115514424)
 - [https://arvutitark.ee/arvutid-ja-lisad/monitorid/1](https://arvutitark.ee/arvutid-ja-lisad/monitorid/1)
 - Kõik `/arvutitark.ee/*` kataloogid
-- Proovige ka teistel saitidel!
+- Proovige ka teistel saitidel, vabandan kui ei tööta!
 
 ## Funktsioonid
 
