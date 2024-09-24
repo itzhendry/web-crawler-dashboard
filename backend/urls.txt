@@ -1,1 +1,1 @@
-http://books.toscrape.com/
+https://books.toscrape.com/
