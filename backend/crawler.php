@@ -59,6 +59,11 @@ function crawlWebsite($url) {
     libxml_clear_errors();
     $xpath = new DOMXPath($dom);
 
+    // If the site structure is not recognized, provide a graceful error message
+    if (strpos($url, 'books.toscrape.com') === false && strpos($url, 'imdb.com') === false && strpos($url, 'amazon.com') === false) {
+        return ['error' => 'Website structure not recognized. Cannot crawl this site.'];
+    }
+
     // Initialize items array
     $items = [];
 
@@ -127,27 +132,6 @@ function crawlWebsite($url) {
             $items[] = [
                 'title' => $title,
                 'year' => $year,
-                'rating' => $rating
-            ];
-        }
-    }
-    // Check for Amazon product listings
-    elseif (strpos($url, 'amazon.com') !== false) {
-        $productNodes = $xpath->query("//div[contains(@class, 's-result-item')]"); // Example XPath for products
-        foreach ($productNodes as $node) {
-            $titleNode = $xpath->query(".//h2/a/span", $node)->item(0);
-            $priceNode = $xpath->query(".//span[contains(@class, 'a-price-whole')]", $node)->item(0);
-            $ratingNode = $xpath->query(".//span[contains(@class, 'a-icon-alt')]", $node)->item(0);
-
-            // Extract data
-            $title = $titleNode ? trim($titleNode->nodeValue) : 'N/A';
-            $price = $priceNode ? trim($priceNode->nodeValue) : 'N/A';
-            $rating = $ratingNode ? trim($ratingNode->nodeValue) : 'N/A';
-
-            // Add the scraped data to the items array
-            $items[] = [
-                'title' => $title,
-                'price' => $price,
                 'rating' => $rating
             ];
         }
