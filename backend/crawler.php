@@ -7,7 +7,7 @@ function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
 
     // If a detailHref is provided, fetch category from the detail page
     $detailUrl = $baseUrl . $detailHref;
-    $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"]];
+    $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 ...\r\n"]];
     $context = stream_context_create($options);
     $html = @file_get_contents($detailUrl, false, $context);
 
@@ -20,17 +20,17 @@ function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
     libxml_use_internal_errors(true);
     $dom->loadHTML($html);
     libxml_clear_errors();
-    $xpath = new DOMXPath($dom);
+    $xpathDetail = new DOMXPath($dom);
 
     // Extract category from breadcrumb
-    $breadcrumbCategory = $xpath->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
+    $breadcrumbCategory = $xpathDetail->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
     if ($breadcrumbCategory) {
         return trim($breadcrumbCategory->nodeValue);
     }
 
     // Extract category from meta or nav tags as fallback
-    $metaCategory = $xpath->query("//meta[@property='category' or @name='category']/@content")->item(0);
-    $navCategory = $xpath->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
+    $metaCategory = $xpathDetail->query("//meta[@property='category' or @name='category']/@content")->item(0);
+    $navCategory = $xpathDetail->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
 
     if ($metaCategory) {
         return trim($metaCategory->nodeValue);
@@ -39,7 +39,7 @@ function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
     }
 
     // Final fallback: try extracting from an h1 element
-    return extractCategoryFromXPath($xpath);
+    return extractCategoryFromXPath($xpathDetail);
 }
 
 // Helper function to extract category from h1
