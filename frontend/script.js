@@ -13,18 +13,6 @@ const categoriesBody = document.getElementById('categories-body');
 let categoryChartInstance = null;
 let priceChartInstance = null;
 
-// Event listener for the crawl button
-crawlButton.addEventListener('click', () => {
-    const urlInput = searchUrlInput.value.trim();
-    if (!urlInput) {
-        alert('Palun sisesta e-poe URL.');
-        return;
-    }
-
-    // Add the new URL to the backend
-    addNewUrl(urlInput);
-});
-
 /**
  * Add a new URL to the backend via POST request.
  *
@@ -116,19 +104,15 @@ function visualizeData(data) {
         '500+': 0
     };
 
-    // Process data
+    // Process data from each crawled site
     data.forEach(site => {
         if (site.items && Array.isArray(site.items)) {
             site.items.forEach(product => {
-                // Count categories
+                // Process categories
                 const category = product.category || 'Unknown';
-                if (categoryCounts[category]) {
-                    categoryCounts[category]++;
-                } else {
-                    categoryCounts[category] = 1;
-                }
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
 
-                // Count price ranges
+                // Process price ranges
                 const price = parseFloat(product.price.replace(/[^0-9.]/g, ''));
                 if (!isNaN(price)) {
                     if (price <= 50) priceRanges['0-50']++;
@@ -140,6 +124,14 @@ function visualizeData(data) {
             });
         }
     });
+
+    // Destroy previous chart instances if they exist
+    if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+    }
+    if (priceChartInstance) {
+        priceChartInstance.destroy();
+    }
 
     // Sort categories by popularity
     const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
@@ -262,20 +254,18 @@ function isValidUrl(url) {
     return pattern.test(url);
 }
 
-// Event listener for the crawl button
+// Consolidated Event Listener
 crawlButton.addEventListener('click', () => {
     const urlInput = searchUrlInput.value.trim();
     if (!urlInput) {
         alert('Palun sisesta e-poe URL.');
         return;
     }
-
     // Validate URL before submitting
     if (!isValidUrl(urlInput)) {
         alert('Palun sisesta kehtiv URL.');
         return;
     }
-
     // Add the new URL to the backend if it's valid
     addNewUrl(urlInput);
 });
