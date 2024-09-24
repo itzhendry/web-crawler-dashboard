@@ -2,8 +2,7 @@
 // crawler.php
 
 // Keep the existing function for fetching book categories
-function fetchBookCategory($detailHref) {
-    $baseUrl = 'http://books.toscrape.com/';
+function fetchBookCategory($detailHref, $baseUrl = 'http://books.toscrape.com/') {
     $detailUrl = $baseUrl . $detailHref;
     $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"]];
     $context = stream_context_create($options);
@@ -19,9 +18,26 @@ function fetchBookCategory($detailHref) {
     libxml_clear_errors();
     $xpath = new DOMXPath($dom);
 
-    // Extract category from breadcrumb
-    $categoryNode = $xpath->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
-    return $categoryNode ? trim($categoryNode->nodeValue) : 'Unknown';
+    // Try extracting the category from various locations
+    $category = 'Unknown';
+    
+    // Extract category from breadcrumb (if exists)
+    $breadcrumbCategory = $xpath->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
+    if ($breadcrumbCategory) {
+        $category = trim($breadcrumbCategory->nodeValue);
+    } else {
+        // Fallback: Check for other common category structures (like nav or meta tags)
+        $metaCategory = $xpath->query("//meta[@property='category' or @name='category']/@content")->item(0);
+        $navCategory = $xpath->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
+
+        if ($metaCategory) {
+            $category = trim($metaCategory->nodeValue);
+        } elseif ($navCategory) {
+            $category = trim($navCategory->nodeValue);
+        }
+    }
+
+    return $category;
 }
 
 // Main crawling function that handles both specific and generic websites
@@ -46,7 +62,7 @@ function crawlWebsite($url) {
     }
 
     // Check if the website is a known one, otherwise use the generic scraper
-    return scrapeGenericEcommerceSite($xpath);
+    return scrapeGenericEcommerceSite($xpath, $url);
 }
 
 // Scraper for books.toscrape.com
@@ -76,188 +92,57 @@ function scrapeBooksToScrape($xpath) {
     return ['url' => 'books.toscrape.com', 'items' => $items];
 }
 
-function scrapeGenericEcommerceSite($xpath) {
+// Generic e-commerce site scraper
+function scrapeGenericEcommerceSite($xpath, $url) {
     $items = [];
+    $baseUrl = parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST);
 
-    // 1. First, try to detect if there are table rows (for sites like IMDb)
-    $rows = $xpath->query("//table//tr");
-    if ($rows->length > 0) {
-        // Loop through each table row and extract meaningful data
-        foreach ($rows as $row) {
-            $titleNode = $xpath->query(".//td/a | .//th/a | .//td[contains(@class, 'titleColumn')]/a", $row)->item(0);
-            $ratingNode = $xpath->query(".//td[contains(@class, 'ratingColumn')]//strong", $row)->item(0);
-            $yearNode = $xpath->query(".//span[contains(@class, 'secondaryInfo')]", $row)->item(0);
+    // XPath queries for product containers across multiple structures
+    $commonContainers = [
+        "//div[contains(@class, 'catalogue-product-wrapper')]",   // Structure from Arvutitark
+        "//div[contains(@class, 'product-list-item')]",           // Common for other e-commerce sites
+        "//div[contains(@class, 'grid-item')]",                   // Grid-based products
+        "//div[contains(@class, 'product')]",                     // Generic product wrapper
+        "//li[contains(@class, 'item')]"                          // Products as list items
+    ];
 
-            // Extract values from the nodes or fallback to N/A
-            $title = $titleNode ? trim($titleNode->nodeValue) : 'N/A';
-            $rating = $ratingNode ? trim($ratingNode->nodeValue) : 'N/A';
-            $year = $yearNode ? trim($yearNode->nodeValue, '()') : 'N/A';
-
-            // Skip header rows that might not contain movie data
-            if ($title !== 'N/A') {
-                $items[] = [
-                    'title' => $title,
-                    'rating' => $rating,
-                    'year' => $year
-                ];
-            }
+    // Loop through the common containers until products are found
+    foreach ($commonContainers as $query) {
+        $productNodes = $xpath->query($query);
+        if ($productNodes->length > 0) {
+            break; // Stop once we find the correct product container
         }
-        return ['url' => 'generic-site', 'items' => $items];
-    }
-
-    // 2. If no table rows, try common product containers (like div, li, or span elements
-    $productNodes = $xpath->query(
-        "//div[contains(@class, 'product') or 
-               contains(@class, 'item') or 
-               contains(@class, 'product-card') or 
-               contains(@class, 's-result-item') or 
-               contains(@class, 'product-box') or 
-               contains(@class, 'grid-item') or 
-               contains(@class, 'list-item') or 
-               contains(@class, 'product-list-item') or 
-               contains(@class, 'result-item')]"
-    );
-
-    // If no product nodes are found, attempt a more generic div selection
-    if ($productNodes->length === 0) {
-        $productNodes = $xpath->query("//div");
     }
 
     foreach ($productNodes as $node) {
-        // Title Extraction: Try multiple approaches including Open Graph and meta tags
-        $titleNode = $xpath->query(".//h1 | .//h2 | .//h3 | .//a[contains(@class, 'title') or 
-                        contains(@class, 'name') or 
-                        contains(@class, 'product-title') or 
-                        contains(@class, 'heading') or 
-                        contains(@class, 'product-heading') or 
-                        contains(@class, 'product-link')]", $node)->item(0);
-        if (!$titleNode) {
-            // Fallback: Try meta tags or Open Graph titles
-            $titleNode = $xpath->query("//meta[@property='og:title']/@content | //meta[@name='title']/@content")->item(0);
-        }
-
-        // Price Extraction: Try broader price patterns including discounts
-        $priceNode = $xpath->query(
-            ".//span[contains(@class, 'price') or 
-                     contains(@class, 'a-price') or 
-                     contains(@class, 'amount') or 
-                     contains(@class, 'price-current') or 
-                     contains(@class, 'current-price') or 
-                     contains(@class, 'discount-price') or
-                     contains(@class, 'a-offscreen') or 
-                     contains(@class, 'price-value')]",
-            $node
-        )->item(0);
-        if (!$priceNode) {
-            // Fallback: Check for nested price containers (e.g., original and discounted prices)
-            $priceNode = $xpath->query(".//span[contains(@class, 'price-inner') or contains(@class, 'price-discount')]", $node)->item(0);
-        }
-
-        // Extract discounted price, if available
-        $discountPriceNode = $xpath->query(".//span[contains(@class, 'discount-price')]", $node)->item(0);
-        $discountPrice = $discountPriceNode ? trim($discountPriceNode->nodeValue) : 'N/A';
-
-        // Categories/Breadcrumbs: Try to extract from category links or breadcrumbs
-        $categoryNode = $xpath->query(".//a[contains(@class, 'category') or 
-                                              contains(@class, 'breadcrumb') or 
-                                              contains(@class, 'nav')]", $node)->item(0);
-
-        // Ratings: Extract rating information (stars or text-based)
-        $ratingNode = $xpath->query(".//span[contains(@class, 'rating') or 
-                                             contains(@class, 'stars') or 
-                                             contains(@class, 'star-rating') or 
-                                             contains(@class, 'ratings')]", $node)->item(0);
-
-        // Image Extraction: Try to extract product image URLs
-        $imageNode = $xpath->query(".//img[contains(@class, 'product-image') or 
-                                            contains(@class, 'item-image') or 
-                                            contains(@class, 'product-card-image')]/@src", $node)->item(0);
-
-        // Pagination Handling (to support multi-page scraping)
-        $nextPageNode = $xpath->query("//a[contains(@class, 'next') or contains(text(), 'Next')]/@href")->item(0);
-        $nextPageUrl = $nextPageNode ? trim($nextPageNode->nodeValue) : null;
-
-        // Extract text values or default to 'N/A'
+        // Fallback for title extraction
+        $titleNode = $xpath->query(".//h4[@class='_name']/@title | .//h2 | .//h3 | .//span[contains(@class, 'product-title')] | .//meta[@property='og:title']/@content", $node)->item(0);
         $title = $titleNode ? trim($titleNode->nodeValue) : 'N/A';
+
+        // Fallback for price extraction
+        $priceNode = $xpath->query(".//div[contains(@class, 'catalogue-product-price')]//text() | .//span[contains(@class, 'price')] | .//div[contains(@class, 'price')]", $node)->item(0);
         $price = $priceNode ? trim($priceNode->nodeValue) : 'N/A';
-        $category = $categoryNode ? trim($categoryNode->nodeValue) : 'Unknown';
-        $rating = $ratingNode ? trim($ratingNode->nodeValue) : 'N/A';
+
+        // Fallback for image extraction
+        $imageNode = $xpath->query(".//img[contains(@class, 'image-wrapper')]/@src | .//img[contains(@class, 'product-image')]/@src | .//meta[@property='og:image']/@content", $node)->item(0);
         $image = $imageNode ? trim($imageNode->nodeValue) : 'N/A';
+
+        // If the image URL is relative, convert it to absolute using the base URL
+        if ($image !== 'N/A' && strpos($image, 'http') === false) {
+            $image = $baseUrl . ltrim($image, '/');
+        }
 
         // Add extracted data to the items array
         $items[] = [
             'title' => $title,
             'price' => $price,
-            'discount_price' => $discountPrice,
-            'category' => $category,
-            'rating' => $rating,
             'image' => $image,
-            'next_page' => $nextPageUrl
-        ];
-
-        // Optional: If you want to crawl the next page, trigger another request here
-        // You would need a recursive mechanism to handle multi-page scraping
-    }
-
-    return ['url' => 'generic-site', 'items' => $items];
-}
-
-function enhancedEcommerceSite($xpath) {
-    $items = [];
-
-    // Try to get even deeper and more comprehensive matches using more complex queries
-    $productNodes = $xpath->query(
-        "//li[contains(@class, 'product-item') or 
-              contains(@class, 'result-item') or 
-              contains(@class, 'product-box') or 
-              contains(@class, 'product-tile') or 
-              contains(@class, 'product-list') or 
-              contains(@class, 'grid-item')]"
-    );
-
-    foreach ($productNodes as $node) {
-        // Try all possible patterns for title and description
-        $titleNode = $xpath->query(".//h1 | .//h2 | .//h3 | .//a[contains(@class, 'title') or 
-                        contains(@class, 'name') or 
-                        contains(@class, 'product-title') or 
-                        contains(@class, 'heading') or 
-                        contains(@class, 'product-heading')]", $node)->item(0);
-
-        // For prices, try multiple approaches, including any dynamic content placeholders
-        $priceNode = $xpath->query(
-            ".//span[contains(@class, 'price') or 
-                     contains(@class, 'a-price') or 
-                     contains(@class, 'amount') or 
-                     contains(@class, 'price-current') or 
-                     contains(@class, 'current-price') or 
-                     contains(@class, 'discount-price')]", 
-            $node
-        )->item(0);
-
-        // Attempt to capture category from the breadcrumb, sidebar, or nav tags
-        $categoryNode = $xpath->query(".//a[contains(@class, 'breadcrumb') or 
-                                          contains(@class, 'category') or 
-                                          contains(@class, 'nav')]", $node)->item(0);
-
-        // Capture ratings, either in text or as stars
-        $ratingNode = $xpath->query(".//span[contains(@class, 'rating') or 
-                                             contains(@class, 'stars') or 
-                                             contains(@class, 'star-rating') or 
-                                             contains(@class, 'ratings')]", $node)->item(0);
-
-        // Extract values and apply fallback where necessary
-        $title = $titleNode ? trim($titleNode->nodeValue) : 'N/A';
-        $price = $priceNode ? trim($priceNode->nodeValue) : 'N/A';
-        $category = $categoryNode ? trim($categoryNode->nodeValue) : 'Unknown';
-        $rating = $ratingNode ? trim($ratingNode->nodeValue) : 'N/A';
-
-        $items[] = [
-            'title' => $title,
-            'price' => $price,
-            'category' => $category,
-            'rating' => $rating,
         ];
     }
 
-    return ['url' => 'enhanced-site', 'items' => $items];
+    // Check for pagination: Find "Next" or similar navigation
+    $nextPageNode = $xpath->query("//a[contains(@class, 'next')]/@href | //li[contains(@class, 'pagination-next')]/a/@href")->item(0);
+    $nextPageUrl = $nextPageNode ? trim($nextPageNode->nodeValue) : null;
+
+    return ['items' => $items, 'next_page' => $nextPageUrl];
 }
