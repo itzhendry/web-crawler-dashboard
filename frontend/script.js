@@ -177,7 +177,6 @@ function visualizeData(data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // Ensures that the canvas respects the set dimensions
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -244,3 +243,39 @@ function generateColors(num) {
     }
     return colors;
 }
+/**
+ * Validate URL format using a regular expression.
+ *
+ * @param {string} url The URL to validate.
+ * @return {boolean} True if the URL is valid, false otherwise.
+ */
+function isValidUrl(url) {
+    const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+        '((([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,})|' + // domain name
+        'localhost|' + // OR localhost
+        '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})' + // OR IPv4
+        '(\\:\\d+)?' + // optional port
+        '(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?' + // path
+        '(\\?[;&a-zA-Z0-9%_\\+.~#?&//=]*)?' + // query string
+        '(\\#[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?$');
+    
+    return pattern.test(url);
+}
+
+// Event listener for the crawl button
+crawlButton.addEventListener('click', () => {
+    const urlInput = searchUrlInput.value.trim();
+    if (!urlInput) {
+        alert('Palun sisesta e-poe URL.');
+        return;
+    }
+
+    // Validate URL before submitting
+    if (!isValidUrl(urlInput)) {
+        alert('Palun sisesta kehtiv URL.');
+        return;
+    }
+
+    // Add the new URL to the backend if it's valid
+    addNewUrl(urlInput);
+});
