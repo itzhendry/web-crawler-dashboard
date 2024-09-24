@@ -1,15 +1,19 @@
 <?php
-// crawler.php
+function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
+    // If no detailHref provided, fallback to checking the main page's h1 element
+    if ($detailHref === null && $xpath !== null) {
+        return extractCategoryFromXPath($xpath);
+    }
 
-// Keep the existing function for fetching book categories
-function fetchBookCategory($detailHref, $baseUrl = 'http://books.toscrape.com/') {
+    // If a detailHref is provided, fetch category from the detail page
     $detailUrl = $baseUrl . $detailHref;
     $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"]];
     $context = stream_context_create($options);
     $html = @file_get_contents($detailUrl, false, $context);
-    
-    if ($html === FALSE) {
-        return 'Unknown';
+
+    if ($html === FALSE && $xpath !== null) {
+        // If we can't retrieve the detail page, fallback to the current page's h1
+        return extractCategoryFromXPath($xpath);
     }
 
     $dom = new DOMDocument();
@@ -18,26 +22,41 @@ function fetchBookCategory($detailHref, $baseUrl = 'http://books.toscrape.com/')
     libxml_clear_errors();
     $xpath = new DOMXPath($dom);
 
-    // Try extracting the category from various locations
-    $category = 'Unknown';
-    
-    // Extract category from breadcrumb (if exists)
+    // Extract category from breadcrumb
     $breadcrumbCategory = $xpath->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
     if ($breadcrumbCategory) {
-        $category = trim($breadcrumbCategory->nodeValue);
-    } else {
-        // Fallback: Check for other common category structures (like nav or meta tags)
-        $metaCategory = $xpath->query("//meta[@property='category' or @name='category']/@content")->item(0);
-        $navCategory = $xpath->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
-
-        if ($metaCategory) {
-            $category = trim($metaCategory->nodeValue);
-        } elseif ($navCategory) {
-            $category = trim($navCategory->nodeValue);
-        }
+        return trim($breadcrumbCategory->nodeValue);
     }
 
-    return $category;
+    // Extract category from meta or nav tags as fallback
+    $metaCategory = $xpath->query("//meta[@property='category' or @name='category']/@content")->item(0);
+    $navCategory = $xpath->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
+
+    if ($metaCategory) {
+        return trim($metaCategory->nodeValue);
+    } elseif ($navCategory) {
+        return trim($navCategory->nodeValue);
+    }
+
+    // Final fallback: try extracting from an h1 element
+    return extractCategoryFromXPath($xpath);
+}
+
+// Helper function to extract category from h1
+function extractCategoryFromXPath($xpath) {
+    // Extract from an h1 tag
+    $h1Category = $xpath->query("//h1")->item(0);
+
+    // In fetchCategoryFromXPath or similar function
+    if ($h1Category) {
+        // Log the captured H1 value
+        error_log("Captured H1 Category: " . $h1Category->nodeValue);
+        return trim($h1Category->nodeValue);
+    } else {
+        // Log the absence of an H1 tag
+        error_log("No H1 tag found.");
+        return 'Unknown';
+    }
 }
 
 // Main crawling function that handles both specific and generic websites
@@ -69,7 +88,7 @@ function crawlWebsite($url) {
 function scrapeBooksToScrape($xpath) {
     $items = [];
     $bookNodes = $xpath->query("//article[@class='product_pod']");
-    
+
     foreach ($bookNodes as $node) {
         $titleNode = $xpath->query(".//h3/a", $node)->item(0);
         $priceNode = $xpath->query(".//p[@class='price_color']", $node)->item(0);
