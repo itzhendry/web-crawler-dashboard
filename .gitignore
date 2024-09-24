@@ -13,3 +13,4 @@ backend/urls.txt
 # Ignore frontend build files (kui kasutate build tööriistu)
 frontend/build/
 frontend/dist/
+node_modules/
