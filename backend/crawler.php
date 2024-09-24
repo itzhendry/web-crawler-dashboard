@@ -1,17 +1,38 @@
 <?php
+// backend/crawler.php
+
+/**
+ * Fetches the category of a book from its detail page or the main page.
+ *
+ * @param string|null $detailHref Relative URL to the book's detail page.
+ * @param string|null $baseUrl Base URL of the website.
+ * @param DOMXPath|null $xpath DOMXPath instance for the main page.
+ * @return string Category name or 'Unknown' if not found.
+ */
 function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
+    error_log("Entering fetchBookCategory with detailHref: " . var_export($detailHref, true));
+    
     // If no detailHref provided, fallback to checking the main page's h1 element
     if ($detailHref === null && $xpath !== null) {
+        error_log("No detailHref provided. Extracting category from main page.");
         return extractCategoryFromXPath($xpath);
     }
 
     // If a detailHref is provided, fetch category from the detail page
-    $detailUrl = $baseUrl . $detailHref;
-    $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 ...\r\n"]];
+    if ($baseUrl === null) {
+        error_log("Base URL is null. Cannot construct detail URL.");
+        return 'Unknown';
+    }
+
+    $detailUrl = rtrim($baseUrl, '/') . '/' . ltrim($detailHref, '/');
+    error_log("Constructed detail URL: " . $detailUrl);
+
+    $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"]];
     $context = stream_context_create($options);
     $html = @file_get_contents($detailUrl, false, $context);
 
-    if ($html === FALSE && $xpath !== null) {
+    if ($html === FALSE) {
+        error_log("Failed to retrieve detail page: " . $detailUrl);
         // If we can't retrieve the detail page, fallback to the current page's h1
         return extractCategoryFromXPath($xpath);
     }
@@ -22,10 +43,12 @@ function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
     libxml_clear_errors();
     $xpathDetail = new DOMXPath($dom);
 
-    // Extract category from breadcrumb
-    $breadcrumbCategory = $xpathDetail->query("//ul[@class='breadcrumb']/li[3]/a")->item(0);
+    // Extract category from breadcrumb, handling both <a> and <span> tags
+    $breadcrumbCategory = $xpathDetail->query("//ul[contains(@class, 'breadcrumb')]/li[3]/a | //ul[contains(@class, 'breadcrumb')]/li[3]/span")->item(0);
     if ($breadcrumbCategory) {
-        return trim($breadcrumbCategory->nodeValue);
+        $category = trim($breadcrumbCategory->nodeValue);
+        error_log("Extracted category from breadcrumb: " . $category);
+        return $category;
     }
 
     // Extract category from meta or nav tags as fallback
@@ -33,24 +56,34 @@ function fetchBookCategory($detailHref = null, $baseUrl = null, $xpath = null) {
     $navCategory = $xpathDetail->query("//nav[contains(@class, 'breadcrumb') or contains(@class, 'nav')]//a")->item(0);
 
     if ($metaCategory) {
-        return trim($metaCategory->nodeValue);
+        $category = trim($metaCategory->nodeValue);
+        error_log("Extracted category from meta: " . $category);
+        return $category;
     } elseif ($navCategory) {
-        return trim($navCategory->nodeValue);
+        $category = trim($navCategory->nodeValue);
+        error_log("Extracted category from nav: " . $category);
+        return $category;
     }
 
     // Final fallback: try extracting from an h1 element
+    error_log("Falling back to extractCategoryFromXPath.");
     return extractCategoryFromXPath($xpathDetail);
 }
-
-// Helper function to extract category from h1
+/**
+ * Extracts the category from the provided DOMXPath by looking for an h1 tag.
+ *
+ * @param DOMXPath $xpath DOMXPath instance.
+ * @return string Category name or 'Unknown' if not found.
+ */
 function extractCategoryFromXPath($xpath) {
     // Extract from an h1 tag
     $h1Category = $xpath->query("//h1")->item(0);
 
-    // In fetchCategoryFromXPath or similar function
+    // Check if $h1Category is captured
     if ($h1Category) {
-        // Log the captured H1 value
-        error_log("Captured H1 Category: " . $h1Category->nodeValue);
+        // Log the captured h1 value
+        error_log("Captured H1 Category: " . trim($h1Category->nodeValue));
+        // Return the trimmed value
         return trim($h1Category->nodeValue);
     } else {
         // Log the absence of an H1 tag
@@ -59,13 +92,21 @@ function extractCategoryFromXPath($xpath) {
     }
 }
 
-// Main crawling function that handles both specific and generic websites
+/**
+ * Main crawling function that handles both specific and generic websites.
+ *
+ * @param string $url The URL to crawl.
+ * @return array Crawled data or error message.
+ */
 function crawlWebsite($url) {
+    error_log("Starting crawlWebsite for URL: " . $url);
+
     $options = ['http' => ['header' => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0\r\n"]];
     $context = stream_context_create($options);
     $html = @file_get_contents($url, false, $context);
 
     if ($html === FALSE) {
+        error_log("Failed to retrieve data from " . $url);
         return ['error' => 'Failed to retrieve data from ' . $url];
     }
 
@@ -77,17 +118,33 @@ function crawlWebsite($url) {
 
     // If the website is books.toscrape.com, use the specific logic
     if (strpos($url, 'books.toscrape.com') !== false) {
-        return scrapeBooksToScrape($xpath);
+        error_log("Detected books.toscrape.com. Using scrapeBooksToScrape.");
+        $result = scrapeBooksToScrape($xpath);
+        if (isset($result['items']) && !empty($result['items'])) {
+            error_log("Successfully scraped books.toscrape.com.");
+            return $result;
+        } else {
+            error_log("No items found in books.toscrape.com.");
+            return ['error' => 'No items found in ' . $url];
+        }
     }
 
     // Check if the website is a known one, otherwise use the generic scraper
-    return scrapeGenericEcommerceSite($xpath, $url);
+    $result = scrapeGenericEcommerceSite($xpath, $url);
+    if (isset($result['items']) && !empty($result['items'])) {
+        error_log("Successfully scraped generic e-commerce site: " . $url);
+        return $result;
+    } else {
+        error_log("No items found in generic e-commerce site: " . $url);
+        return ['error' => 'No items found in ' . $url];
+    }
 }
 
 // Scraper for books.toscrape.com
 function scrapeBooksToScrape($xpath) {
     $items = [];
     $bookNodes = $xpath->query("//article[@class='product_pod']");
+    $baseUrl = 'https://books.toscrape.com/'; // Define the base URL
 
     foreach ($bookNodes as $node) {
         $titleNode = $xpath->query(".//h3/a", $node)->item(0);
@@ -98,7 +155,7 @@ function scrapeBooksToScrape($xpath) {
         $title = $titleNode ? trim($titleNode->getAttribute('title')) : 'N/A';
         $price = $priceNode ? trim($priceNode->nodeValue) : 'N/A';
         $rating = $ratingNode ? explode(" ", $ratingNode->getAttribute('class'))[1] : 'N/A';
-        $category = fetchBookCategory($detailHref);
+        $category = fetchBookCategory($detailHref, $baseUrl, $xpath); // Pass baseUrl and xpath
 
         $items[] = [
             'title' => $title,
