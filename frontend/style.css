@@ -1,83 +1,112 @@
-/* frontend/styles.css */
-
+/* Global adjustments to reduce size */
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f9f9f9;
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 100%;
 }
 
-h1 {
+/* Header and Footer */
+header {
+    background-color: #007bff;
+    color: white;
     text-align: center;
-    color: #333;
+    padding: 10px; /* Reduce padding */
+}
+
+footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 10px; /* Reduce padding */
+    font-size: 12px; /* Reduce font size */
+}
+
+/* Controls Section */
+#controls-section {
+    background-color: #fff;
+    padding: 20px 0; /* Reduce padding */
+    display: flex;
+    justify-content: center;
 }
 
 #controls {
     display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+    gap: 8px; /* Reduce the gap between input and button */
 }
 
 #search-url {
-    width: 300px;
-    padding: 10px;
-    font-size: 16px;
+    width: 250px; /* Reduce input width */
+    padding: 8px; /* Reduce padding */
+    font-size: 14px; /* Reduce font size */
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 6px; /* Reduce border radius */
 }
 
 #crawl-button {
-    padding: 10px 20px;
-    margin-left: 10px;
-    font-size: 16px;
+    padding: 10px 15px; /* Reduce button size */
+    font-size: 14px; /* Reduce font size */
     background-color: #28a745;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px; /* Reduce border radius */
     cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-#crawl-button:hover {
-    background-color: #218838;
-}
-
+/* Status */
 #status {
     text-align: center;
-    margin-bottom: 20px;
-    font-weight: bold;
-    color: #555;
+    margin-top: 10px; /* Reduce margin */
+    font-size: 14px; /* Reduce font size */
+    color: #007bff;
 }
 
+/* Dashboard Section */
 #dashboard {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    padding: 20px 10px; /* Reduce padding */
+    background-color: #f9f9f9;
+    max-width: 1000px; /* Limit dashboard width */
+    margin: 0 auto; /* Center dashboard */
 }
 
 #charts {
     display: flex;
+    justify-content: space-around;
     flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
+    gap: 10px; /* Reduce gap between charts */
+    margin-bottom: 30px; /* Reduce bottom margin */
 }
 
 #charts canvas {
-    width: 45%;
-    max-width: 600px;
-    margin: 20px;
-    background-color: white;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    background-color: #fff;
+    padding: 10px; /* Reduce padding */
+    border: 1px solid #ddd;
+    border-radius: 6px; /* Reduce border radius */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 300px; /* Reduce maximum width */
+    max-height: 300px; /* Reduce maximum height */
 }
 
-#categories-table {
-    width: 80%;
-    max-width: 800px;
-    margin-top: 40px;
+/* Table Section */
+.card {
     background-color: white;
-    padding: 20px;
-    border: 1px solid #ccc;
     border-radius: 8px;
+    padding: 10px; /* Reduce padding */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 700px; /* Reduce max width */
+    margin: 0 auto; /* Center the table */
+}
+
+h2 {
+    margin-bottom: 15px; /* Reduce margin */
+    font-size: 18px; /* Reduce font size */
+    color: #333;
+    text-align: center;
 }
 
 table {
@@ -86,24 +115,54 @@ table {
 }
 
 thead {
-    background-color: #f2f2f2;
+    background-color: #007bff;
+    color: white;
 }
 
 th, td {
-    padding: 12px;
+    padding: 8px; /* Reduce padding */
     border: 1px solid #ddd;
     text-align: center;
 }
 
 th {
-    background-color: #343a40;
+    background-color: #007bff;
     color: white;
 }
 
 tr:nth-child(even) {
     background-color: #f9f9f9;
 }
-/* frontend/styles.css */
-.d-none {
-    display: none;
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Footer */
+footer p {
+    margin: 0;
+    font-size: 12px; /* Reduce font size */
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    #charts {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #charts canvas {
+        max-width: 90%;
+    }
+
+    #controls {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+#categoryChart, #priceChart {
+    max-width: 400px;  /* Adjust to your desired width */
+    max-height: 400px; /* Adjust to your desired height */
+    width: 100%; /* Make sure the width is responsive */
+    height: auto;
 }
