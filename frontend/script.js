@@ -177,6 +177,7 @@ function visualizeData(data) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false, // Ensures that the canvas respects the set dimensions
             plugins: {
                 legend: {
                     position: 'bottom',
