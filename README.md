@@ -19,7 +19,6 @@ Veebikaapimise Dashboard on tööriist, mis võimaldab teil kaapida andmeid erin
 ### Example URLs for Testing
 - http://books.toscrape.com/ (for book categories and prices)
 - https://www.imdb.com/chart/top/ (for movie listings)
-- https://www.amazon.com/s?k=electronics (for product prices)
 
 ## Kontakt
 
