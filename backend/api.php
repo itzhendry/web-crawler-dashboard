@@ -63,6 +63,12 @@ if ($method === 'POST') {
     if (file_put_contents('urls.txt', $newUrl . PHP_EOL, FILE_APPEND | LOCK_EX) === false) {
         sendResponse(500, ['error' => 'Failed to add URL']);
     }
+    // Remove duplicates from urls.txt
+    $urls = file('urls.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $uniqueUrls = array_unique($urls);
+    if (file_put_contents('urls.txt', implode(PHP_EOL, $uniqueUrls) . PHP_EOL) === false) {
+        sendResponse(500, ['error' => 'Failed to remove duplicates']);
+    }
 
     sendResponse(200, ['success' => 'URL added successfully']);
 } elseif ($method === 'GET') {
