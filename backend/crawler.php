@@ -115,27 +115,6 @@ function crawlWebsite($url) {
             }
         }
     }
-    // Check for IMDb movie listings
-    elseif (strpos($url, 'imdb.com') !== false) {
-        $movieNodes = $xpath->query("//div[contains(@class, 'lister-item-content')]"); // Example XPath for movies
-        foreach ($movieNodes as $node) {
-            $titleNode = $xpath->query(".//h3/a", $node)->item(0);
-            $yearNode = $xpath->query(".//span[contains(@class, 'lister-item-year')]", $node)->item(0);
-            $ratingNode = $xpath->query(".//div[contains(@class, 'inline-block ratings-imdb-rating')]/strong", $node)->item(0);
-
-            // Extract data
-            $title = $titleNode ? trim($titleNode->nodeValue) : 'N/A';
-            $year = $yearNode ? trim($yearNode->nodeValue) : 'N/A';
-            $rating = $ratingNode ? trim($ratingNode->nodeValue) : 'N/A';
-
-            // Add the scraped data to the items array
-            $items[] = [
-                'title' => $title,
-                'year' => $year,
-                'rating' => $rating
-            ];
-        }
-    }
     else {
         return ['error' => 'Website structure not recognized'];
     }
