@@ -16,13 +16,12 @@ Veebikaapimise Dashboard on tööriist, mis võimaldab teil kaapida andmeid erin
 - **Visualiseerimine:** Andmeid kuvatakse kategooriate ja hinnaklasside jaotuses interaktiivsete graafikute ja tabelitena.
 - **URL Halduse API:** Lisage ja hallake kaapimise jaoks vajalikke URL-e lihtsa API kaudu.
 
-### Example URLs for Testing
+### Example URL for Testing
 - http://books.toscrape.com/ (for book categories and prices)
-- https://www.imdb.com/chart/top/ (for movie listings)
 
 ## Kontakt
 
-Kui teil on küsimusi või vajate abi, võtke ühendust hendryvalingg@gmnail.com.
+Kui teil on küsimusi või vajate abi, võtke ühendust hendryvalingg@gmail.com.
 
 ## Paigaldamine
 
