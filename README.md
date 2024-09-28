@@ -3,7 +3,7 @@
 
 ## Ülevaade
 
-**Veebikaapimise Dashboard** on täisstacki veebirakendus, mis on loodud praktika raames näitamaks võimekust e-kaubanduse ja informatiivsete veebisaitide andmekaeveks. Rakendus võimaldab kasutajatel sisestada sihtveebisaitide URL-e, käivitada kaapimisprotsessi ja visualiseerida kogutud andmeid interaktiivsete graafikute ja tabelite abil. See tööriist on kasulik toodete kategooriate, hinnaklasside ja muude oluliste mõõdikute analüüsimiseks erinevatel platvormidel.
+**Veebikaapimise Dashboard** on full-stack veebirakendus, mis on loodud praktika raames näitamaks võimekust e-kaubanduse ja informatiivsete veebisaitide andmekaeveks. Rakendus võimaldab kasutajatel sisestada sihtveebisaitide URL-e, käivitada kaapimisprotsessi ja visualiseerida kogutud andmeid interaktiivsete graafikute ja tabelite abil. See tööriist on kasulik toodete kategooriate, hinnaklasside ja muude oluliste mõõdikute analüüsimiseks erinevatel platvormidel.
 
 ## Testimiseks Näidis URL-id
 
